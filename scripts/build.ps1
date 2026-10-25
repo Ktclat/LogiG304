@@ -1,4 +1,4 @@
-param([switch]$Test, [string]$PayloadZip)
+﻿param([switch]$Test, [string]$PayloadZip)
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 $out=Join-Path $repo 'artifacts'

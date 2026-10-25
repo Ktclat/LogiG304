@@ -23,6 +23,8 @@ def main():
         if path.suffix.lower() in forbidden:errors.append((name,'binary or private artifact'));continue
         if any(p.lower() in {'private','payload','artifacts','data','backups','seed','node_modules'} for p in path.relative_to(ROOT).parts):errors.append((name,'private/generated directory'));continue
         data=path.read_bytes();total+=len(data)
+        if path.suffix.lower()=='.ps1' and any(b>127 for b in data) and not data.startswith(b'\xef\xbb\xbf'):
+            errors.append((name,'PowerShell 5.1 requires a UTF-8 BOM for this non-ASCII script'))
         if len(data)>1024**2:errors.append((name,'unexpected large file'));continue
         try:text=data.decode('utf-8-sig')
         except UnicodeDecodeError:errors.append((name,'not UTF-8 text'));continue
