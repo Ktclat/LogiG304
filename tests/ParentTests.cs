@@ -19,7 +19,7 @@ namespace GHubSetup {
             return String.Join(";",acl.GetAccessRules(true,true,typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>().Where(r=>r.InheritanceFlags!=InheritanceFlags.None).Select(r=>r.IdentityReference.Value+":"+r.AccessControlType+":"+(long)SafeFs.ExpandedRights(r.FileSystemRights)+":"+r.InheritanceFlags+":"+(r.PropagationFlags&PropagationFlags.NoPropagateInherit)).OrderBy(x=>x));
         }
         static string OnVolume(string path,string fixture){
-            return path.StartsWith(@"D:\",StringComparison.OrdinalIgnoreCase)?Path.GetPathRoot(fixture)+path.Substring(3):path;
+            return path.StartsWith(@"D:\",StringComparison.OrdinalIgnoreCase)?Path.GetPathRoot(Environment.SystemDirectory)+path.Substring(3):path;
         }
         public static void Run(Action<bool,string> check,string fixture){
             string user=WindowsIdentity.GetCurrent().User.Value;

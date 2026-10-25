@@ -977,7 +977,7 @@ namespace GHubSetup {
             check(rejected,"reject link as physical source");
             Junction.Remove(alias,target);
             check(Directory.Exists(target)&&File.ReadAllText(Path.Combine(target,"sentinel"))=="unchanged"&&!Directory.Exists(alias),"removing junction preserves data");
-            string proposed=SafeFs.Target(Path.Combine(Path.GetPathRoot(dir),"GHub-Offline"));
+            string proposed=SafeFs.Target(Path.Combine(Path.GetPathRoot(Environment.SystemDirectory),"GHub-Offline"));
             SafeFs.CheckParents(proposed);
             cases.Add("D drive protected target accepted");
             ParentTests.Run(check,dir);

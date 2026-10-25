@@ -25,7 +25,7 @@ try {
  if($Test){
   $report=Join-Path $out 'installer-tests.json'
   $p=Start-Process -FilePath (Join-Path $out 'Setup.Development.exe') -ArgumentList @('--self-test',('"'+$report+'"')) -WindowStyle Hidden -Wait -PassThru
-  if($p.ExitCode -ne 0){throw "Installer tests failed. See $report"}
+  if($p.ExitCode -ne 0){if(Test-Path -LiteralPath $report){Get-Content -LiteralPath $report -Raw|Write-Output};throw "Installer tests failed. See $report"}
   $p=Start-Process -FilePath (Join-Path $out 'G HUB Offline.exe') -ArgumentList '--self-test' -WindowStyle Hidden -Wait -PassThru
   if($p.ExitCode -ne 0){throw 'Launcher tests failed.'}
   Get-Content -LiteralPath $report -Raw|ConvertFrom-Json|Select-Object success,tests
