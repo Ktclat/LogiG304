@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Ktclat
+// SPDX-License-Identifier: AGPL-3.0-only
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');

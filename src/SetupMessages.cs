@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Ktclat
+// SPDX-License-Identifier: AGPL-3.0-only
 using System;
 using System.IO;
 using System.Text;

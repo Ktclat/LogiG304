@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Ktclat
+// SPDX-License-Identifier: AGPL-3.0-only
 'use strict';
 // Operates only on the exact supported, caller-provided local archive.
 const fs = require('node:fs');

@@ -1,10 +1,17 @@
-﻿param([switch]$Test, [string]$PayloadZip)
+﻿# SPDX-FileCopyrightText: 2026 Ktclat
+# SPDX-License-Identifier: AGPL-3.0-only
+param([switch]$Test, [string]$PayloadZip)
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 $out=Join-Path $repo 'artifacts'
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if(-not (Test-Path -LiteralPath $compiler)){throw 'Windows x64 with .NET Framework 4.8 is required.'}
 New-Item -ItemType Directory -Path $out,(Join-Path $out 'compiler-temp') -Force|Out-Null
+foreach($notice in @('LICENSE','NOTICE.md','THIRD_PARTY.md')){
+ Copy-Item -LiteralPath (Join-Path $repo $notice) -Destination (Join-Path $out $notice)
+}
+New-Item -ItemType Directory -Path (Join-Path $out 'LICENSES') -Force|Out-Null
+Copy-Item -LiteralPath (Join-Path $repo 'LICENSES\MIT-historical.txt') -Destination (Join-Path $out 'LICENSES\MIT-historical.txt')
 $files=@(Get-ChildItem -LiteralPath (Join-Path $repo 'src'),(Join-Path $repo 'tests') -Filter '*.cs' -File|Sort-Object FullName|ForEach-Object FullName)
 $refs=@('System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Web.Extensions.dll','System.ServiceProcess.dll','Microsoft.CSharp.dll','System.IO.Compression.dll')|ForEach-Object {'/reference:'+$_}
 $oldTemp=$env:TEMP

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Ktclat
+# SPDX-License-Identifier: AGPL-3.0-only
 """Fail closed on accidental binaries, profiles, machine identifiers or credentials."""
 from pathlib import Path
 import re

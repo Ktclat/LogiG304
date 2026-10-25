@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Ktclat
+// SPDX-License-Identifier: AGPL-3.0-only
 // G HUB installed offline launcher. Build for .NET Framework 4.8 x64.
 using System;
 using System.IO;

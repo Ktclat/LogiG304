@@ -24,6 +24,8 @@ python ./scripts/audit_public.py
 
 不要直接用这些开发产物替换正在使用的安装目录文件。
 
+构建同时复制 `LICENSE`、`NOTICE.md`、`THIRD_PARTY.md` 和历史许可说明。分发 AGPL 覆盖的二进制时，需要附带许可与版权声明，并按 AGPL 第 6 条提供该版本完整对应源码。不要把开发输出文件夹整体作为发行包；其中可能有本地测试数据。官方组件仍需另行满足其许可，AGPL 不替代这项授权。
+
 ## 可选的授权资源构建
 
 只有另行持有适用授权、已经完成隐私审查的资源 ZIP 才能作为输入：
@@ -64,6 +66,8 @@ G HUB Offline.exe.config
 ## 可选的界面构建复现
 
 `frontend/offline-mode.cjs` 是完整的自有策略源码。对另行授权的本地原始 ASAR，可用以下开发工具复现固定版本补丁：
+
+该文件的当前许可使用相邻的 `offline-mode.cjs.license` 声明，避免仅添加注释就改变已固定校验的 ASAR 输出。文件内容保持不变不意味着历史 MIT 授权被撤回；许可版本边界见根目录 `NOTICE.md`。
 
 ```powershell
 npm ci --ignore-scripts

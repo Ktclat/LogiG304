@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Ktclat
+# SPDX-License-Identifier: AGPL-3.0-only
 """Validate a separately authorized, non-personal resource ZIP. Never installs it."""
 import hashlib
 import json

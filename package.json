@@ -2,7 +2,7 @@
   "name": "logig304-source-tools",
   "version": "0.1.0",
   "private": true,
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "description": "Optional local ASAR patch build tool; no vendor resources included",
   "scripts": {"test": "node frontend/test-offline.cjs"},
   "devDependencies": {"asar": "3.2.0"}
