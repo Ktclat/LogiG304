@@ -1,7 +1,5 @@
 # 第三方范围
 
-独立版 `standalone/` 参考 MIT 许可的 libratbag HID++ 协议实现，版权和许可全文见 [standalone/THIRD-PARTY.txt](standalone/THIRD-PARTY.txt)，也嵌入并附带在独立版下载包中。下列官方核心范围仅与旧封装方案有关；独立版不包含或下载这些资源。
-
 MIT 仅覆盖本仓库由项目作者编写的代码与文档，不为下列项目授予许可：
 
 - Logitech G HUB 的 EXE、DLL、驱动、ASAR、图标、设备资源及配置模板。

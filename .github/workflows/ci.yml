@@ -7,9 +7,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build independent controller and test without hardware
-        shell: powershell
-        run: ./scripts/build-standalone.ps1 -Test -Package
       - name: Build and run isolated Windows regression tests
         shell: powershell
         run: ./scripts/build.ps1 -Test
@@ -19,11 +16,3 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py"
       - name: Check public file inventory
         run: python ./scripts/audit_public.py
-      - name: Upload independent preview packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: LogiG304-independent-win-x64
-          path: |
-            artifacts/standalone/LogiG304-Setup.exe
-            artifacts/standalone/LogiG304-0.1.0-preview.1-win-x64.zip
-            artifacts/standalone/SHA256SUMS.txt

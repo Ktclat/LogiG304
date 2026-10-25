@@ -5,7 +5,7 @@ $out=Join-Path $repo 'artifacts'
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if(-not (Test-Path -LiteralPath $compiler)){throw 'Windows x64 with .NET Framework 4.8 is required.'}
 New-Item -ItemType Directory -Path $out,(Join-Path $out 'compiler-temp') -Force|Out-Null
-$files=@(Get-ChildItem -LiteralPath (Join-Path $repo 'src'),(Join-Path $repo 'tests') -Filter '*.cs' -File|Where-Object {$_.Name -ne 'ControllerTests.cs'}|Sort-Object FullName|ForEach-Object FullName)
+$files=@(Get-ChildItem -LiteralPath (Join-Path $repo 'src'),(Join-Path $repo 'tests') -Filter '*.cs' -File|Sort-Object FullName|ForEach-Object FullName)
 $refs=@('System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Web.Extensions.dll','System.ServiceProcess.dll','Microsoft.CSharp.dll','System.IO.Compression.dll')|ForEach-Object {'/reference:'+$_}
 $oldTemp=$env:TEMP
 $oldTmp=$env:TMP
