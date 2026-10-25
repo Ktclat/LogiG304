@@ -24,7 +24,7 @@ python ./scripts/audit_public.py
 
 不要直接用这些开发产物替换正在使用的安装目录文件。
 
-构建同时复制 `LICENSE`、`NOTICE.md`、`THIRD_PARTY.md` 和历史许可说明。分发 AGPL 覆盖的二进制时，需要附带许可与版权声明，并按 AGPL 第 6 条提供该版本完整对应源码。不要把开发输出文件夹整体作为发行包；其中可能有本地测试数据。官方组件仍需另行满足其许可，AGPL 不替代这项授权。
+构建同时复制 `LICENSE`、`NOTICE.md`、`THIRD_PARTY.md`。分发 AGPL 覆盖的二进制时，需要附带许可与版权声明，并按 AGPL 第 6 条提供该版本完整对应源码。不要把开发输出文件夹整体作为发行包；其中可能有本地测试数据。官方组件仍需另行满足其许可，AGPL 不替代这项授权。
 
 ## 可选的授权资源构建
 
@@ -58,7 +58,7 @@ G HUB Offline.exe.config
 
 配置模板中的 `${ROOT}`、`${PROGRAMDATA}`、`${LOCALAPPDATA}` 在安装时按目标电脑环境展开。
 此接口拒绝本机数据库、个人配置、历史日志、机器状态文件和模板中的个人路径/SID。
-现有私人验证包含有自己的配置快照，因此**不能直接作为这个公开构建接口的输入**。
+现有私人归档包含个人配置，必须先使用下面的整理工具生成新 ZIP，不能直接作为完整包构建输入。
 
 资源校验通过只证明结构与哈希一致，不证明再分发授权、无敏感内容、第三方安全性或新电脑上安装成功。
 去除个人配置后的首次运行和全新 Windows 安装仍须单独验证；不得用私人电脑的成功记录代替这一步。
@@ -76,3 +76,24 @@ node scripts/patch-asar.cjs /path/to/original.asar ./artifacts/app.offline.asar
 
 首次准备 npm 依赖可能联网；准备好依赖后，补丁构建本身不联网。输入与输出均校验固定 SHA-256，原文件不修改，输出不能覆盖已有文件。
 工具比对每个未修改的原始资源，且不会把生成的第三方资源提交进 Git。此命令不授予修改或再分发第三方软件的权利。
+
+## 从本地归档生成无个人配置的资源包
+
+先完成自有代码构建，再对另行取得且有权使用的资源 ZIP 执行：
+
+```powershell
+python scripts/make_generic_payload.py --source private/source.zip --tools artifacts --output private/generic.zip --report artifacts/privacy-check.json
+./scripts/build.ps1 -PayloadZip private/generic.zip
+```
+
+输出路径必须是新文件。整理器仅复制固定核心与 G304 资源白名单，删除配置种子、密钥/分组、无关驱动和游戏插件，以本次编译的辅助程序替换旧程序，并生成新的清单。可以重复传入 `--private-marker` 对已知私人标识做 UTF-8/UTF-16 原始字节检查；报告不记录标识值。不要把私人标识写进公开脚本或 CI。
+
+模板中的旧驱动状态会被清除；真正安装成功后才记录已安装状态。输出还必须经过人工来源检查、资源校验和全新系统验证，不能把“扫描未发现”理解为任意输入都已彻底匿名化。
+
+## 隔离安装验证
+
+`tests/sandbox/SandboxSmoke.cs` 是测试入口，不随普通源码构建执行。它必须与安装器源码、相同的生成清单摘要和 `Payload.zip` 一起编译。入口检查 Sandbox 专用账户、只读输入标记和专用结果目录，避免在日常电脑运行。
+
+Windows Sandbox 测试使用 `.wsb` 关闭 Networking 和 ClipboardRedirection，输入文件夹只读、结果文件夹单独可写。不要映射真实安装目录、个人 AppData 或整个工作区。由于 Sandbox 的默认管理员账户与普通用户不同，测试入口创建普通权限令牌启动正式启动器，安装事务与界面就绪条件不变。
+
+这验证的是同源安装后端和正式启动器，不代替普通 Windows 中的 UAC 点击流程或实体 G304 验收。具体结果与环境限制见 [VALIDATION.md](VALIDATION.md)。

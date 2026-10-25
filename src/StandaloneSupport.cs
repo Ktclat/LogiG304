@@ -202,6 +202,12 @@ namespace GHubSetup {
             var state=Store.Read(file);
             var seed=Store.Read(Path.Combine(Store.Root,@"Seed\System\installation.template.json"));
             var extensions=(Dictionary<string,object>)seed["extensions"];
+            var virtualExtension=(Dictionary<string,object>)extensions["driver_hid_virtual"];
+            foreach(var item in (System.Collections.IEnumerable)virtualExtension["extensions"]){
+                ((Dictionary<string,object>)item)["state"]=new Dictionary<string,object>{
+                    {"error",""},{"state","EXTENSION_INSTALLED"}
+                };
+            }
             state["extensions"]=new Dictionary<string,object>{
                 {
                     "driver_hid_virtual",extensions["driver_hid_virtual"]

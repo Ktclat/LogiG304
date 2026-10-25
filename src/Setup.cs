@@ -255,8 +255,8 @@ namespace GHubSetup {
             }
             );
             Directory.CreateDirectory(Store.LocalFolder);
-            string localSeed=Path.Combine(Store.Root,@"Seed\Local\LGHUB");
-            if(Directory.Exists(localSeed))SafeFs.Copy(localSeed,Store.LocalFolder,null);
+            // Generic packages never bootstrap a previous user's profile.
+            if(Directory.Exists(Path.Combine(Store.Root,@"Seed\Local")))throw new IOException("安装资源包含个人配置，已拒绝继续。");
         }
         static void SaveShortcut(Journal j){
             j.Shortcut=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"G HUB Offline.lnk");
@@ -663,7 +663,7 @@ namespace GHubSetup {
             }
         }
         public SetupWindow(){
-            Text="G HUB 本地离线安装 · 驱动就绪修正版 v3";
+            Text="G304 本地离线安装 · 无个人配置通用包";
             ClientSize=new Size(760,570);
             Font=new Font("Microsoft YaHei UI",10);
             FormBorderStyle=FormBorderStyle.FixedDialog;
@@ -678,8 +678,7 @@ namespace GHubSetup {
             }
             );
             string drive=DriveInfo.GetDrives().Where(d=>d.IsReady&&d.DriveType==DriveType.Fixed&&d.DriveFormat=="NTFS"&&!Store.Eq(d.RootDirectory.FullName,Path.GetPathRoot(Environment.SystemDirectory))).Select(d=>d.RootDirectory.FullName).FirstOrDefault()??Path.GetPathRoot(Environment.SystemDirectory);
-            string preferred=Path.Combine(drive,@"Toolkit\Software");
-            if(!Directory.Exists(preferred))preferred=Path.Combine(drive,"Software");
+            string preferred=Path.Combine(drive,"Software");
             Controls.Add(new Label{
                 Text="存放位置（上级目录）",Location=new Point(30,174),Size=new Size(650,24)
             }
@@ -723,7 +722,7 @@ namespace GHubSetup {
             }
             );
             importText=new TextBox{
-                Text=LegacyImport.Detect(),Location=new Point(30,366),Size=new Size(700,30)
+                Text="",Location=new Point(30,366),Size=new Size(700,30)
             }
             ;
             Controls.Add(importText);
