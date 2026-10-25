@@ -1,0 +1,9 @@
+{
+  "name": "logig304-source-tools",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Optional local ASAR patch build tool; no vendor resources included",
+  "scripts": {"test": "node frontend/test-offline.cjs"},
+  "devDependencies": {"asar": "3.2.0"}
+}

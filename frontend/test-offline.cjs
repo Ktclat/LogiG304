@@ -1,0 +1,35 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const {EventEmitter}=require('node:events');
+async function test(){
+ const app=new EventEmitter();const flags=[];app.commandLine={appendSwitch:f=>flags.push(f)};
+ let blocker;const session={defaultSession:{webRequest:{onBeforeRequest:(filter,callback)=>{assert.deepEqual([...filter.urls],['<all_urls>']);blocker=callback;}}}};
+ let outside=0,fetches=0;const handlers={};
+ const electron={app,session,shell:{openExternal:async()=>{outside++;}},ipcMain:{handle:(name,handler)=>{handlers[name]=handler;}}};
+ const fakeProcess={env:{HTTP_PROXY:'http://127.0.0.1:6472',ALL_PROXY:'socks5://127.0.0.1:6472',PATH:'keep'},pid:100};
+ const context={require:n=>n==='electron'?electron:require(n),module:{exports:{}},URL,process:fakeProcess,fetch:async()=>{fetches++;return 'local';}};
+ vm.runInNewContext(fs.readFileSync(__dirname+'/offline-mode.cjs','utf8'),context);
+ const allowed=context.module.exports.allowedRequest;
+ const localFiles=['file:///C:/Program%20Files/LGHUB/resources/app.asar/index.html','file://localhost/C:/test.txt','file:///d:/local.txt'];
+ const allowedUrls=[...localFiles,'data:image/png;base64,AA==','about:blank','ws://127.0.0.1:9010','http://127.1:9180','ws://localhost:9010','http://[::1]:9010','sentry-ipc://sentry-electron.ping'];
+ const uncUrls=['file://server/share/test.txt','file://127.0.0.1/share/test.txt','file:////server/share/test.txt','file://///server/share/test.txt','file:///%5C%5Cserver%5Cshare%5Ctest.txt','file:///%2f%2fserver/share/test.txt','file:///C:/%2ftest.txt','file:///C:/%5ctest.txt','file:///C:/%252ftest.txt','file:///C:/%255ctest.txt','file:///C:/%25%32%66test.txt','file:///C:/%25%35%63test.txt','file:///share/test.txt','file://localhost/share/test.txt','file:///C:/bad%zz'];
+ const blockedUrls=['https://www.logitechg.com/','https://sentry.io/api/','http://192.168.1.1/','http://127.0.0.1.example.org/','https://localhost@external.example/','http://[2001:db8::1]/','ftp://example.com/','not a URL',...uncUrls];
+ for(const url of allowedUrls)assert.equal(allowed(url),true,url);
+ for(const url of blockedUrls)assert.equal(allowed(url),false,url);
+ assert.equal(fakeProcess.env.HTTP_PROXY,undefined);assert.equal(fakeProcess.env.ALL_PROXY,undefined);assert.equal(fakeProcess.env.PATH,'keep');
+ assert.ok(flags.includes('no-proxy-server'));
+ app.emit('ready');
+ for(const url of [...allowedUrls,...blockedUrls])blocker({url},result=>assert.equal(result.cancel,!allowed(url)));
+ await assert.rejects(context.fetch('https://example.com/'),{code:'GHUB_OFFLINE'});
+ assert.equal(fetches,0);assert.equal(await context.fetch('http://127.0.0.1:9180'),'local');
+ await electron.shell.openExternal('https://example.com/');assert.equal(outside,0);
+ for(const url of uncUrls)await electron.shell.openExternal(url);
+ assert.equal(outside,0);
+ for(const url of localFiles)await electron.shell.openExternal(url);
+ assert.equal(outside,localFiles.length);
+ electron.ipcMain.handle('ON_APP_LOADED',()=>42);assert.equal(handlers.ON_APP_LOADED(),42);
+ console.log('PASS: local IPC/resource allowlist; external requests and browser handoff denied; proxy cleanup; app-ready callback preserved.');
+}
+test().catch(error=>{console.error(error);process.exitCode=1;});
