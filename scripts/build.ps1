@@ -1,7 +1,9 @@
 ﻿# SPDX-FileCopyrightText: 2026 Ktclat
 # SPDX-License-Identifier: AGPL-3.0-only
-param([switch]$Test, [string]$PayloadZip)
+param([switch]$Test, [string]$PayloadZip, [switch]$Package)
 $ErrorActionPreference='Stop'
+if($Package -and $PayloadZip){throw 'Public tools packaging cannot be combined with a third-party payload.'}
+if($Package -and -not $Test){throw 'Use -Test -Package so download packages pass regression tests first.'}
 $repo=Split-Path $PSScriptRoot -Parent
 $out=Join-Path $repo 'artifacts'
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
@@ -52,5 +54,13 @@ try {
   Compile-Entry 'GHubSetup.Setup' 'GHub-Local-Setup.exe' $inputs @(('/resource:'+$payload+',Payload.zip'))
   $p=Start-Process -FilePath (Join-Path $out 'GHub-Local-Setup.exe') -ArgumentList @('--verify-package',('"'+(Join-Path $out 'embedded-check.json')+'"')) -WindowStyle Hidden -Wait -PassThru
   if($p.ExitCode -ne 0){throw 'Embedded payload verification failed.'}
+ }
+ if($Package){
+  node (Join-Path $repo 'frontend\test-offline.cjs')
+  if($LASTEXITCODE -ne 0){throw 'Frontend policy tests failed.'}
+  python -m unittest discover -s (Join-Path $repo 'tests') -p 'test_*.py'
+  if($LASTEXITCODE -ne 0){throw 'Resource, privacy or package tests failed.'}
+  python (Join-Path $PSScriptRoot 'package_tools.py')
+  if($LASTEXITCODE -ne 0){throw 'Public tools package validation failed.'}
  }
 } finally {$env:TEMP=$oldTemp;$env:TMP=$oldTmp}
