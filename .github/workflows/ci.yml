@@ -28,6 +28,9 @@ jobs:
       - name: Build, run regression, frontend and privacy tests, then package
         shell: powershell
         run: ./scripts/build.ps1 -Test -Package
+      - name: Run the downloaded guide and check loose-tool guards
+        shell: powershell
+        run: ./scripts/test_download.ps1 -PackageDirectory ./artifacts/downloads
       - name: Upload reviewed download files
         id: download
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
