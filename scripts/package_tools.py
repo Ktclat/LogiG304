@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import stat
+import struct
 import subprocess
 import sys
 import zipfile
@@ -15,6 +16,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ('G HUB Offline.exe', '网络设置.exe', '卸载 G HUB 本地版.exe')
 BINARIES = tuple(name + suffix for name in TOOLS for suffix in ('', '.config'))
+GUIDE_BINARIES = ('开始使用.exe', '开始使用.exe.config')
 DOCUMENTS = ('LICENSE', 'NOTICE.md', 'THIRD_PARTY.md')
 TOOLS_ZIP = 'LogiG304-Tools-Windows-x64.zip'
 SOURCE_ZIP = 'LogiG304-Source.zip'
@@ -38,6 +40,16 @@ def regular_file(path):
     return path.read_bytes()
 
 
+def require_x64_executable(data, name):
+    if len(data) < 64 or data[:2] != b'MZ':
+        raise ValueError('Not a Windows executable: ' + name)
+    offset = struct.unpack_from('<I', data, 0x3c)[0]
+    if offset < 64 or offset + 6 > len(data) or data[offset:offset + 4] != b'PE\0\0':
+        raise ValueError('Invalid PE header: ' + name)
+    if struct.unpack_from('<H', data, offset + 4)[0] != 0x8664:
+        raise ValueError('The public tools require Windows x64: ' + name)
+
+
 def make_bundle(artifacts, source, commit):
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('A full source commit is required.')
@@ -45,11 +57,11 @@ def make_bundle(artifacts, source, commit):
         docs = {name: archive.read(SOURCE_PREFIX + name) for name in DOCUMENTS}
         docs['使用说明.md'] = archive.read(SOURCE_PREFIX + GUIDE)
     files = {**docs, SOURCE_ZIP: source}
-    for name in BINARIES:
+    for name in (*BINARIES, *GUIDE_BINARIES):
         data = regular_file(artifacts / name)
-        if name.endswith('.exe') and not data.startswith(b'MZ'):
-            raise ValueError('Not a Windows executable: ' + name)
-        files['tools/' + name] = data
+        if name.endswith('.exe'):
+            require_x64_executable(data, name)
+        files[name if name in GUIDE_BINARIES else 'tools/' + name] = data
     manifest = {
         'schemaVersion': 1,
         'packageKind': 'project-tools-only',
@@ -77,18 +89,26 @@ def make_bundle(artifacts, source, commit):
 def verify_bundle(bundle, source, commit):
     expected = {*DOCUMENTS, '使用说明.md', SOURCE_ZIP, 'package-manifest.json'}
     expected.update('tools/' + name for name in BINARIES)
+    expected.update(GUIDE_BINARIES)
     with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
         if len(archive.namelist()) != len(expected) or set(archive.namelist()) != expected:
             raise ValueError('Unexpected or duplicate files in public tools ZIP.')
         manifest = json.loads(archive.read('package-manifest.json'))
-        if manifest['sourceCommit'] != commit or manifest['isCompleteInstaller'] is not False:
+        if (manifest['sourceCommit'] != commit or manifest.get('schemaVersion') != 1
+                or manifest.get('packageKind') != 'project-tools-only'
+                or manifest.get('supportedCoreVersion') != '2025.9.814156'
+                or any(manifest.get(key) is not False for key in
+                       ('isCompleteInstaller', 'containsDrivers', 'containsOfficialCore'))):
             raise ValueError('Incorrect package identity.')
         hashes = manifest['files']
         if set(hashes) != expected - {'package-manifest.json'}:
             raise ValueError('Incomplete package hash inventory.')
         for name, value in hashes.items():
-            if digest(archive.read(name)) != value:
+            data = archive.read(name)
+            if digest(data) != value:
                 raise ValueError('Package hash mismatch: ' + name)
+            if name.endswith('.exe'):
+                require_x64_executable(data, name)
         if archive.read(SOURCE_ZIP) != source:
             raise ValueError('Corresponding source does not match.')
 
@@ -96,7 +116,7 @@ def verify_bundle(bundle, source, commit):
 def release_notes(commit):
     return f'''自有辅助工具 · Windows x64 · 源码版本 `{commit}`
 
-下载 `LogiG304-Tools-Windows-x64.zip` 可获得已编译的辅助程序、使用说明、完整对应源码与许可；无需自己编译这些工具。
+下载并完整解压 `LogiG304-Tools-Windows-x64.zip`，双击根目录的 `开始使用.exe`。中文向导可以校验下载文件，或选择已有安装做只读检查；不申请管理员权限，不更改现有配置。下载目录内的辅助程序有误操作提示。
 
 **这是辅助工具包，不是完整 G304 安装器。** 不含罗技官方核心、驱动、设备资源或个人配置，不能用于全新电脑首次安装 G HUB。它只配套本项目固定版本的本地安装环境；直接装有官方 G HUB 也不等于满足条件。请先阅读 ZIP 中的 `使用说明.md`，不要直接替换正在使用的安装目录。
 

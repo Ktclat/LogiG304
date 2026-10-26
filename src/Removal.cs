@@ -85,6 +85,7 @@ namespace GHubSetup {
         }
         [STAThread]static int Main(string[] args){
             try{
+                if(DownloadGuide.BlockDistributionTool(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),args.Length!=0))return 2;
                 if(args.Length==2&&args[0]=="--remove-helper"){
                     Helper(args[1]);
                     return 0;

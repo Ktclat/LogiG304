@@ -985,6 +985,7 @@ namespace GHubSetup {
             MessageTests.Run(check,dir);
             StandaloneTests.Run(check,dir);
             V3Tests.Run(check,dir);
+            DownloadGuideTests.Run(check,dir);
             Store.Write(report,new{
                 success=true,tests=cases.Count,cases=cases
             }

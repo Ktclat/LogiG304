@@ -750,6 +750,7 @@ namespace GHubLocal {
                     SelfTest();
                     return 0;
                 }
+                if(DownloadGuide.BlockDistributionTool(Store.Root,quiet))return 2;
                 Store.Init();
                 if(args.Contains("--helper")){
                     Helper(args);

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 import io
 import json
+import struct
 from pathlib import Path
 import sys
 import tempfile
@@ -17,8 +18,13 @@ class PublicPackageTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.artifacts = Path(self.temp.name)
-        for name in package.BINARIES:
-            (self.artifacts / name).write_bytes(b'MZtest-tool' if name.endswith('.exe') else b'<configuration/>')
+        self.exe = bytearray(256)
+        self.exe[:2] = b'MZ'
+        struct.pack_into('<I', self.exe, 0x3c, 128)
+        self.exe[128:132] = b'PE\0\0'
+        struct.pack_into('<H', self.exe, 132, 0x8664)
+        for name in (*package.BINARIES, *package.GUIDE_BINARIES):
+            (self.artifacts / name).write_bytes(self.exe if name.endswith('.exe') else b'<configuration/>')
         source = io.BytesIO()
         with zipfile.ZipFile(source, 'w') as archive:
             for name in (*package.DOCUMENTS, package.GUIDE):
@@ -36,7 +42,7 @@ class PublicPackageTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(bundle)) as archive:
             for name in archive.namelist():
                 self.assertNotIn(b'PRIVATE-SENTINEL', archive.read(name))
-            self.assertEqual(sum(name.endswith('.exe') for name in archive.namelist()), 3)
+            self.assertEqual(sum(name.endswith('.exe') for name in archive.namelist()), 4)
             manifest = json.loads(archive.read('package-manifest.json'))
             self.assertFalse(manifest['isCompleteInstaller'])
             self.assertFalse(manifest['containsOfficialCore'])
@@ -52,6 +58,30 @@ class PublicPackageTests(unittest.TestCase):
         (self.artifacts / package.TOOLS[0]).write_bytes(b'not an executable')
         with self.assertRaises(ValueError):
             package.make_bundle(self.artifacts, self.source, self.commit)
+
+    def test_wrong_architecture_and_invalid_pe_offset_are_rejected(self):
+        for offset, architecture in ((128, 0x14c), (65535, 0x8664)):
+            data = bytearray(self.exe)
+            struct.pack_into('<I', data, 0x3c, offset)
+            struct.pack_into('<H', data, 132, architecture)
+            (self.artifacts / package.TOOLS[0]).write_bytes(data)
+            with self.assertRaises(ValueError):
+                package.make_bundle(self.artifacts, self.source, self.commit)
+
+    def test_incorrect_package_scope_is_rejected(self):
+        original = package.make_bundle(self.artifacts, self.source, self.commit)
+        for key in ('containsOfficialCore', 'containsDrivers', 'isCompleteInstaller'):
+            changed = io.BytesIO()
+            with zipfile.ZipFile(io.BytesIO(original)) as source, zipfile.ZipFile(changed, 'w') as target:
+                for name in source.namelist():
+                    data = source.read(name)
+                    if name == 'package-manifest.json':
+                        manifest = json.loads(data)
+                        manifest[key] = True
+                        data = json.dumps(manifest).encode()
+                    target.writestr(name, data)
+            with self.assertRaises(ValueError):
+                package.verify_bundle(changed.getvalue(), self.source, self.commit)
 
     def test_tampering_and_unlisted_files_are_rejected(self):
         original = package.make_bundle(self.artifacts, self.source, self.commit)

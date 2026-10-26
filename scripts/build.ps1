@@ -1,11 +1,17 @@
 ﻿# SPDX-FileCopyrightText: 2026 Ktclat
 # SPDX-License-Identifier: AGPL-3.0-only
-param([switch]$Test, [string]$PayloadZip, [switch]$Package)
+param([switch]$Test, [string]$PayloadZip, [switch]$Package, [string]$PackageDirectory)
 $ErrorActionPreference='Stop'
 if($Package -and $PayloadZip){throw 'Public tools packaging cannot be combined with a third-party payload.'}
 if($Package -and -not $Test){throw 'Use -Test -Package so download packages pass regression tests first.'}
+if($PackageDirectory -and -not $Package){throw '-PackageDirectory requires -Package.'}
 $repo=Split-Path $PSScriptRoot -Parent
 $out=Join-Path $repo 'artifacts'
+if($Package){
+ if(-not $PackageDirectory){$PackageDirectory=Join-Path $out 'downloads'}
+ elseif(-not [IO.Path]::IsPathRooted($PackageDirectory)){$PackageDirectory=Join-Path $repo $PackageDirectory}
+ if(Test-Path -LiteralPath $PackageDirectory){throw 'Download output already exists. Choose a new folder with -PackageDirectory; existing downloads will not be replaced.'}
+}
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if(-not (Test-Path -LiteralPath $compiler)){throw 'Windows x64 with .NET Framework 4.8 is required.'}
 New-Item -ItemType Directory -Path $out,(Join-Path $out 'compiler-temp') -Force|Out-Null
@@ -29,6 +35,7 @@ try {
  Compile-Entry 'GHubLocal.Program' 'G HUB Offline.exe' $files @()
  Compile-Entry 'GHubLocal.NetworkEntry' '网络设置.exe' $files @()
  Compile-Entry 'GHubSetup.Removal' '卸载 G HUB 本地版.exe' $files @()
+ Compile-Entry 'GHubLocal.DownloadGuide' '开始使用.exe' $files @()
  if($Test){
   # Compile the isolated smoke harness for CI, but never run it on the host.
   Compile-Entry 'SandboxSmoke' 'SandboxSmoke.Development.exe' ($files+@(Join-Path $repo 'tests\sandbox\SandboxSmoke.cs')) @()
@@ -60,7 +67,7 @@ try {
   if($LASTEXITCODE -ne 0){throw 'Frontend policy tests failed.'}
   python -m unittest discover -s (Join-Path $repo 'tests') -p 'test_*.py'
   if($LASTEXITCODE -ne 0){throw 'Resource, privacy or package tests failed.'}
-  python (Join-Path $PSScriptRoot 'package_tools.py')
+  python (Join-Path $PSScriptRoot 'package_tools.py') --output $PackageDirectory
   if($LASTEXITCODE -ne 0){throw 'Public tools package validation failed.'}
  }
 } finally {$env:TEMP=$oldTemp;$env:TMP=$oldTmp}
